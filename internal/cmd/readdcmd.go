@@ -53,18 +53,25 @@ func (c *Config) runReAddCmd(cmd *cobra.Command, args []string, sourceState *che
 			},
 		)
 	} else {
-		for _, arg := range args {
-			arg = filepath.Clean(arg)
-			destAbsPath, err := chezmoi.NewAbsPathFromExtPath(arg, c.homeDirAbsPath)
-			if err != nil {
-				return err
+		filterArgs := func(args []string) error {
+			for _, arg := range args {
+				arg = filepath.Clean(arg)
+				destAbsPath, err := chezmoi.NewAbsPathFromExtPath(arg, c.homeDirAbsPath)
+				if err != nil {
+					return err
+				}
+				targetRelPath, err := c.targetRelPath(destAbsPath)
+				if err != nil {
+					return err
+				}
+				targetRelPaths = append(targetRelPaths, targetRelPath)
+				sourceStateEntries[targetRelPath] = sourceState.Get(targetRelPath)
 			}
-			targetRelPath, err := c.targetRelPath(destAbsPath)
-			if err != nil {
-				return err
-			}
-			targetRelPaths = append(targetRelPaths, targetRelPath)
-			sourceStateEntries[targetRelPath] = sourceState.Get(targetRelPath)
+			return nil
+		}
+		err := filterArgs(args)
+		if err != nil {
+			return err
 		}
 	}
 	sort.Sort(targetRelPaths)
